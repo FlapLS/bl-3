@@ -29,23 +29,3 @@ CREATE INDEX Section_idx ON "section" USING hash("article_id");
 
 CREATE INDEX Version_idx ON "version" USING hash("section_id");
 
---Функция вставки текста
-CREATE OR REPLACE FUNCTION TextInsert() RETURNS TRIGGER AS
-$$
-begin
-    IF (select NEW.DateEdited) > (select "latestdate" from "section" where id = NEW.Section_ID)
-    then
-        update section SET newesttext = NEW.SectionText, latestdate = NEW.DateEdited where id = NEW.Section_ID;
-        raise debug 'Текст секции заменен на новый, дата изменения: %!', NEW.DateEdited;
-    end if;
-    return NEW;
-end;
-$$ LANGUAGE plpgsql;
-
---Триггер
-DROP TRIGGER IF EXISTS "NewestTextInsert" ON "version";
-CREATE TRIGGER NewestTextInsert
-    AFTER INSERT
-    ON "version"
-    FOR EACH ROW
-EXECUTE PROCEDURE "textinsert"();
